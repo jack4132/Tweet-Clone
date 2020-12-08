@@ -1,10 +1,11 @@
-import security
+
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, \
     jwt_refresh_token_required, create_refresh_token, get_raw_jwt
 import re
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, request, jsonify
+import security
 import dotenv
 dotenv.load_dotenv()
 
@@ -176,7 +177,8 @@ def register():
             return jsonify({"error": "Invalid form"})
         # Check to see if user already exists
         users = getUsers()
-        if len(list(filter(lambda x: security.dec(x["email"] == email), users))) == 1:
+        # this line had the bug
+        if len(list(filter(lambda x: security.dec(x["email"]) == email, users))) == 1:
             return jsonify({"error": "Invalid form"})
         # Email validation check
         if not re.match(r"[\w._]{5,}@\w{3,}\.\w{2,4}", email):
@@ -191,6 +193,7 @@ def register():
 @app.route("/api/checkiftokenexpire", methods=["POST"])
 @jwt_required
 def check_if_token_expire():
+    print(get_jwt_identity())
     return jsonify({"success": True})
 
 
