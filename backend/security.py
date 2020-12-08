@@ -16,7 +16,7 @@ def checkpwd(x, y):
 
 
 def enc(txt: str) -> str:
-    return e.encrypt(txt.encode()).decode()
+    return e.encrypt(txt.encode()).encode()
 
 
 def dec(txt: str) -> str:

@@ -1,14 +1,15 @@
-from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from flask_cors import CORS
-import re
+import security
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, \
     jwt_refresh_token_required, create_refresh_token, get_raw_jwt
+import re
+from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, request, jsonify
 import dotenv
-
 dotenv.load_dotenv()
 
-app = Flask(__name__)
+
+app = Flask(__name__, static_folder="build", static_url_path="/")
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///twitter.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db = SQLAlchemy(app)
@@ -19,7 +20,7 @@ jwt = JWTManager(app)
 CORS(app)
 
 
-# DB USER
+# DB
 class User(db.Model):
     id = db.Column(db.Integer,
                    primary_key=True)
@@ -66,8 +67,6 @@ def removeUser(uid):
         print(e)
         return False
 
-# DB TWEET
-
 
 class Tweet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -110,8 +109,6 @@ def delTweet(tid):
         print(e)
         return False
 
-# DB INVALID_TOKEN
-
 
 class InvalidToken(db.Model):
     __tablename__ = "invalid_tokens"
@@ -134,14 +131,23 @@ def check_if_blacklisted_token(decrypted):
     return InvalidToken.is_invalid(jti)
 
 
-# ROUTES USER
+# ROUTES
+@app.route("/<a>")
+def react_routes(a):
+    return app.send_static_file("index.html")
+
+
+@app.route("/")
+def react_index():
+    return app.send_static_file("index.html")
+
+
 @app.route("/api/login", methods=["POST"])
 def login():
     try:
         email = request.json["email"]
         password = request.json["pwd"]
         if email and password:
-            # this beneathe line is checking pwd.
             user = list(filter(lambda x: security.dec(
                 x["email"]) == email and security.checkpwd(password, x["password"]), getUsers()))
             # Check if user exists
@@ -163,7 +169,6 @@ def register():
     try:
         email = request.json["email"]
         email = email.lower()
-        # this line beneathe is encrypting pwd
         password = security.encpwd(request.json["pwd"])
         username = request.json["username"]
         print(email, password, request.json["pwd"], username)
@@ -207,7 +212,7 @@ def access_logout():
         return jsonify({"success": True})
     except Exception as e:
         print(e)
-        return {"error": e}
+        return {"error": e.message}
 
 
 @app.route("/api/logout/refresh", methods=["POST"])
@@ -220,9 +225,7 @@ def refresh_logout():
         return jsonify({"success": True})
     except Exception as e:
         print(e)
-        return {"error": e}
-
-# ROUTE TWEETS
+        return {"error": e.message}
 
 
 @app.route("/api/tweets")
@@ -256,14 +259,11 @@ def delete_tweet(tid):
         return jsonify({"error": "Invalid form"})
 
 
-# CURRENT USER
 @app.route("/api/getcurrentuser")
 @jwt_required
 def get_current_user():
     uid = get_jwt_identity()
     return jsonify(getUser(uid))
-
-# CHANGE PWD & DELETE USER
 
 
 @app.route("/api/changepassword", methods=["POST"])
