@@ -10,7 +10,7 @@ async function login(email, pwd) {
         localStorage.setItem("refreshToken", data.refreshToken);
         return true
     }
-    console.log("branch switch")
+    console.log("branch switch","push to another branch from one branch")
 }
 
 async function check() {
